@@ -113,6 +113,11 @@ void dumpCardInfo() {
 }
 
 void writeToCardBlock() {
+
+  Serial.println(F("\nCheck the card Data and available Blocks first."));
+  while (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) delay(50);
+  mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+
   Serial.println(F("\nEnter block number to write to (0–63, except trailer blocks like 3, 7, 11, etc.):"));
   while (!Serial.available());
   int block = Serial.parseInt();
@@ -125,18 +130,39 @@ void writeToCardBlock() {
     return;
   }
 
-  byte blockcontent[16] = "testingrfid12345";
+  // Ask user for the data
+  Serial.println(F("Enter up to 16 characters to write to the block:"));
+  while (!Serial.available()); // Wait for user input
 
-  Serial.print(F("\nPlace a card to write data to block "));
+  String input = Serial.readStringUntil('\n'); // Read user input
+  input.trim(); // Remove any newline or extra spaces
+
+  // Convert to byte array and pad with 0s if necessary
+  byte blockcontent[16];
+  int len = input.length();
+  if (len > 16) len = 16; // Truncate if longer than 16
+
+  for (int i = 0; i < 16; i++) {
+    if (i < len) {
+      blockcontent[i] = input[i];
+    } else {
+      blockcontent[i] = 0x00; // Pad with null bytes
+    }
+  }
+
+  Serial.print(F("\nPlace a card to write \""));
+  Serial.print(input);
+  Serial.print(F("\" to block "));
   Serial.print(block);
   Serial.println(F(":"));
   while (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) delay(50);
 
   writeAndReadRFIDBlock(block, blockcontent);
 
-  Serial.println(F("\nCCheck the card Data."));
+  Serial.println(F("\nCheck the card Data."));
   dumpCardInfo();
 }
+
 
 
 
